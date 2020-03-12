@@ -13,7 +13,7 @@ android {
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
     signingConfigs {
@@ -21,7 +21,7 @@ android {
         }
 
         release {
-            //storeFile file('schoolfood_release.keystore') // 기준은 App 폴더 기준이다.
+            storeFile file('release_key.keystore') // 기준은 App 폴더 기준이다.
         }
     }
 
@@ -82,7 +82,20 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            def requested = details.requested
+            if (requested.group == "androidx") {
+                if (!requested.name.startsWith("multidex")) {
+                    details.useVersion "${targetSdk}.+"
+                }
+            }
+        }
+    }
+
     useLibrary 'org.apache.http.legacy'
+
+
 }
 
 dependencies {
@@ -99,6 +112,7 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'com.google.android.material:material:1.0.0'
 
+
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.0'
 
@@ -108,8 +122,8 @@ dependencies {
     implementation "com.afollestad.rxkprefs:core:2.0.3"
 
     implementation 'com.afollestad.material-dialogs:core:3.1.1'
+    implementation 'com.afollestad.material-dialogs:input:3.1.1'
 
-    //
     implementation('com.squareup.retrofit2:retrofit:2.6.1') {
         exclude module: 'okhttp'
     }
@@ -128,4 +142,10 @@ dependencies {
 //    implementation 'com.dinuscxj:circleprogressbar:1.3.0'
 
     implementation 'com.google.android.gms:play-services-ads:18.0.0'
+
+    implementation 'com.google.android.gms:play-services-maps:17.0.0'
+    implementation 'com.google.android.gms:play-services-location:17.0.0'
+
+    implementation 'com.naver.maps:map-sdk:3.5.0' // naver map
 }
+

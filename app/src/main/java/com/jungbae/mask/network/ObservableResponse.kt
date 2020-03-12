@@ -34,10 +34,8 @@ open class ObservableResponse<T>(val onSuccess: ((T) -> Unit)? = {}, val onError
     }
 
     private fun checkValidResponseCode(t: T): Boolean {
-        if (t as? SchoolData != null) {
-            return validSchoolData(t)
-        } else if(t as? SchoolMealData != null) {
-            return validSchoolMealData(t)
+        if (t as? StoresByData != null) {
+            return validData(t)
         }
 
 //        when(t) {
@@ -54,11 +52,11 @@ open class ObservableResponse<T>(val onSuccess: ((T) -> Unit)? = {}, val onError
         return false
     }
 
-    private fun validSchoolData(t: T): Boolean {
-        val school: SchoolData = t as SchoolData
-        val code = school.schoolInfo.get(SchoolDataIndex.HEAD.index).head.get(SchoolDataIndex.RESULT_CODE.index).result.code
+    private fun validData(t: T): Boolean {
+        val data: StoresByData = t as StoresByData
+        //val code = school.schoolInfo.get(SchoolDataIndex.HEAD.index).head.get(SchoolDataIndex.RESULT_CODE.index).result.code
 
-        if (code == "INFO-000") {
+        if (data.count >= 0) {
             return true
         }
         return false

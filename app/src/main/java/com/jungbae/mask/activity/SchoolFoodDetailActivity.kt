@@ -131,38 +131,38 @@ class SchoolFoodDetailActivity : AppCompatActivity() {
 
         Log.e("@@@","start ${sif.format(firstDayOfMonth)}, last ${sif.format(lastDayOfMonth)}")
 
-        val dispose =
-            NetworkService.getInstance().getSchoolMealData("json", 1, 100, ofCode, scCode, "05b9d532ceeb48dd89238746bd9b0e16", sif.format(firstDayOfMonth), sif.format(lastDayOfMonth))
-            .subscribeWith(ObservableResponse<SchoolMealData>(
-                onSuccess = {
-                    val data = it.mealServiceDietInfo.get(1).row.map { data ->
-                        SimpleSchoolMealData(data.schoolName, data.mealTime, data.dishName, data.mealName, data.calInfo, data.schoolCode, data.eduOfficecode)
-                    }
-
-                    data?.let {
-                        addCard(it)
-                        val index = it.indexOfFirst { data ->
-                            data.date == today
-                        }
-
-                        if(index > 0) {
-                            recycler_view.postDelayed(Runnable {
-                                recycler_view.scrollToPosition(index)
-                            }, 100)
-                        }
-                        //updateUI(it)
-                        //updateCard(it)
-                    }
-
-                    Log.e("@@@@@", "onSuccess ${it.reflectionToString()}")
-                    //Log.d("@@@@@", "onSuccess list ${list}")
-                }, onError = {
-                    Log.e("@@@@@", "@@@@@ error $it")
-                    showMaterialDialog()
-                }
-            ))
-
-        disposeBag.add(dispose)
+//        val dispose =
+//            NetworkService.getInstance().getSchoolMealData("json", 1, 100, ofCode, scCode, "05b9d532ceeb48dd89238746bd9b0e16", sif.format(firstDayOfMonth), sif.format(lastDayOfMonth))
+//            .subscribeWith(ObservableResponse<SchoolMealData>(
+//                onSuccess = {
+//                    val data = it.mealServiceDietInfo.get(1).row.map { data ->
+//                        SimpleSchoolMealData(data.schoolName, data.mealTime, data.dishName, data.mealName, data.calInfo, data.schoolCode, data.eduOfficecode)
+//                    }
+//
+//                    data?.let {
+//                        addCard(it)
+//                        val index = it.indexOfFirst { data ->
+//                            data.date == today
+//                        }
+//
+//                        if(index > 0) {
+//                            recycler_view.postDelayed(Runnable {
+//                                recycler_view.scrollToPosition(index)
+//                            }, 100)
+//                        }
+//                        //updateUI(it)
+//                        //updateCard(it)
+//                    }
+//
+//                    Log.e("@@@@@", "onSuccess ${it.reflectionToString()}")
+//                    //Log.d("@@@@@", "onSuccess list ${list}")
+//                }, onError = {
+//                    Log.e("@@@@@", "@@@@@ error $it")
+//                    showMaterialDialog()
+//                }
+//            ))
+//
+//        disposeBag.add(dispose)
 
 
     }

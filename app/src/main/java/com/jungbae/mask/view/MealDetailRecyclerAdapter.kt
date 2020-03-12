@@ -14,7 +14,7 @@ class MealDetailRecyclerAdapter(private val list: List<SimpleSchoolMealData>, pr
     }
 
     override fun onBindViewHolder(holder: MealDetailHolder, position: Int) {
-        holder.bind(list.get(position), subject)
+       // holder.bind(list.get(position), subject)
     }
 
     override fun getItemCount(): Int {

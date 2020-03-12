@@ -1,0 +1,35 @@
+#Internal package file, do not edit.
+#Thu Mar 12 14:28:28 KST 2020
+7.path=lib/arm64-v8a/libnavermap.so
+2.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/transforms/dexMerger/release/0
+5.set=NATIVE_RESOURCE
+0.path=lib/x86/libnavermap.so
+2.baseType=DIRECTORY
+3.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/transforms/mergeJniLibs/release/0
+7.baseType=DIRECTORY
+2.set=DEX
+1.path=navermap-sdk/NOTICE
+4.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/merged_assets/release/out
+7.set=NATIVE_RESOURCE
+count=8
+5.baseType=DIRECTORY
+2.path=classes.dex
+5.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/transforms/mergeJniLibs/release/0
+4.set=ASSET
+3.path=lib/x86_64/libnavermap.so
+6.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/transforms/dexMerger/release/0
+3.baseType=DIRECTORY
+1.set=ASSET
+4.path=navermap-sdk/LICENSE
+7.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/transforms/mergeJniLibs/release/0
+6.set=DEX
+1.baseType=DIRECTORY
+6.baseType=DIRECTORY
+5.path=lib/armeabi-v7a/libnavermap.so
+0.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/transforms/mergeJniLibs/release/0
+0.baseType=DIRECTORY
+3.set=NATIVE_RESOURCE
+6.path=classes2.dex
+1.base=/Users/jungjiwon/SRC/mask2/app/build/intermediates/merged_assets/release/out
+4.baseType=DIRECTORY
+0.set=NATIVE_RESOURCE

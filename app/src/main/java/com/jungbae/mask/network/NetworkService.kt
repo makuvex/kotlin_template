@@ -43,6 +43,18 @@ class NetworkService {
         service = SchoolFoodService.create()
     }
 
+    fun getMaskSaler(page: Int, perPage: Int): Observable<MaskSaler> {
+        return service.getMaskSaler(page, perPage)
+    }
+
+    fun getStoresByGeo(lat: Double, lng: Double, radius: Int): Observable<StoresByData> {
+        return service.getStoresByGeo(lat, lng, radius)
+    }
+
+    fun getStoresByAddr(addr: String): Observable<StoresByData> {
+        return service.getStoresByAddr(addr)
+    }
+
     /*
     fun getSchoolData(@Query("Type") type: String,
                    @Query("pIndex") index: Int,
@@ -50,6 +62,9 @@ class NetworkService {
                    @Query("SCHUL_NM") name: String): Single<SchoolData>
 
      */
+
+    /*
+
     fun getSchoolData(type: String, index: Int, size: Int, schoolName: String, key: String): Observable<SchoolData> {
         return service.getSchoolData(type, index, size, schoolName, key)
     }
@@ -66,5 +81,6 @@ class NetworkService {
         Log.e("@@@", "officeCode ${officeCode}, schoolCode ${schoolCode}")
         return service.getSchoolMealData(type, index, size, officeCode, schoolCode, authKey, fromDate, toDate)
     }
+    */
 }
 

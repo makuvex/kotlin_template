@@ -4,10 +4,14 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.jungbae.mask.network.SimpleSchoolMealData
+import com.jungbae.mask.network.Store
+import com.jungbae.mask.network.StoresByData
 import io.reactivex.subjects.PublishSubject
 
 
-class HomeRecyclerAdapter(private val list: List<SimpleSchoolMealData>, private var selectSubject: PublishSubject<SimpleSchoolMealData>, private var deleteSubject: PublishSubject<SimpleSchoolMealData>): RecyclerView.Adapter<HomeCardHolder>() {
+class HomeRecyclerAdapter(private val list: List<Store>,
+                          private var selectSubject: PublishSubject<Store>,
+                          private var deleteSubject: PublishSubject<Store>): RecyclerView.Adapter<HomeCardHolder>() {
 
     private var option: Boolean = false
 

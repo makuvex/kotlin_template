@@ -10,7 +10,7 @@
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="?attr/actionBarSize"
-                android:text="우리 학교 급식"
+                android:text="@string/app_name"
                 android:textSize="40dp"
                 android:textStyle="bold"
                 android:textColor="@color/colorPrimary"
@@ -21,7 +21,7 @@
         <ImageView
                 android:layout_width="100dp"
                 android:layout_height="100dp"
-                android:background="@drawable/meal"
+                android:background="@drawable/man"
                 android:layout_gravity="center"
                 android:layout_marginTop="20dp"
                 />

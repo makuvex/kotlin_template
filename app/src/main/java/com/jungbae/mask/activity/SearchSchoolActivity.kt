@@ -76,6 +76,7 @@ class SearchSchoolActivity : AppCompatActivity() {
             .filter{ edit_text.length() > 0 }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe{
+/*
                 NetworkService.getInstance().getSchoolData("json", 1, 100, edit_text.text.toString(), "05b9d532ceeb48dd89238746bd9b0e16")
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribeWith(ObservableResponse<SchoolData>(
@@ -94,6 +95,8 @@ class SearchSchoolActivity : AppCompatActivity() {
                             Log.d("@@@", "@@@@@ error $it")
                         }
                 ))
+*/
+
             }
 
         val subjectDisposable = selectedBehaviorSubject.filter{ it != null }.subscribe {

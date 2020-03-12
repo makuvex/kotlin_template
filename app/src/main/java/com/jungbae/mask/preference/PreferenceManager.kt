@@ -22,6 +22,10 @@ object PreferencesConstant {
     val SCHOOL_NAME = "SCHOOL_NAME"
 
     val SCHOOL_DATA = "SCHOOL_DATA"
+
+    ///////////
+
+    val PERMISSION_NOTICE = "PERMISSION_NOTICE"
 }
 
 class PreferenceManager {
@@ -35,6 +39,20 @@ class PreferenceManager {
             Log.e("@@@","@@@ PreferenceManager init")
             instance = instance ?: rxkPrefs(SchoolFoodApplication.context, SchoolFoodApplication.context.packageName, AppCompatActivity.MODE_PRIVATE)
         }
+
+        @JvmStatic
+        var permissionNotice: Boolean
+            get() {
+                instance?.run {
+                    return boolean(PreferencesConstant.PERMISSION_NOTICE, false).get()
+                }
+                return false
+            }
+            set(value) {
+                instance?.let {
+                    it.boolean(PreferencesConstant.PERMISSION_NOTICE, false).set(value)
+                }
+            }
 
         @JvmStatic
         var schoolData: MutableSet<SimpleSchoolData>?
