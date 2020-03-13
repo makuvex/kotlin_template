@@ -1,10 +1,9 @@
 package com.jungbae.mask.network
 
 import io.reactivex.Single
-import retrofit2.http.GET
-import retrofit2.http.Query
+import retrofit2.http.*
 
-interface SchoolFoodApiInterface {
+interface MaskApiInterface {
 
     @GET(ApiSetting.Service.GET_MASK_SALER)
     fun getMaskSaler(@Query("page") page: Int,
@@ -17,6 +16,28 @@ interface SchoolFoodApiInterface {
 
     @GET(ApiSetting.Service.GET_STORES_BY_ADDR)
     fun getStoresByAddr(@Query("address") address: String): Single<StoresByData>
+
+    @POST(ApiSetting.Service.User)
+    fun registId(@Query("fcmToken") fcmToken: String,
+                 @Query("deviceId") deviceId: String): Single<UserModel>
+
+    @GET(ApiSetting.Service.Keyword)
+    fun keyword(@Query("userSeq") userSeq: String): Single<StoresByKeyword>
+
+    @POST(ApiSetting.Service.Keyword)
+    fun registKeyword(@Query("lat") lat: Double,
+                      @Query("lng") lng: Double,
+                      @Query("userSeq") userSeq: Int,
+                      @Query("code") code: String): Single<BaseResult>
+
+//    @PUT(ApiSetting.Service.Keyword)
+//    fun updateKeyword(@Query("keyword") keyword: String,
+//                      @Query("userSeq") userSeq: String,
+//                      @Query("alert") alert: Int): Single<BaseResult>
+
+    @DELETE(ApiSetting.Service.Keyword)
+    fun deleteKeyword(@Query("code") code: String,
+                      @Query("userSeq") userSeq: Int): Single<BaseResult>
 
 /*
     @GET(ApiSetting.Service.GET_SCHOOL_INFO)

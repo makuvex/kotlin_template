@@ -33,9 +33,30 @@ open class ObservableResponse<T>(val onSuccess: ((T) -> Unit)? = {}, val onError
         Log.d("@@@", "onComplete 1")
     }
 
+
+    private fun validDealData(t: T): Boolean {
+        val resp: BaseRespData = t as BaseRespData
+        if(resp.code == "2000") {
+            return true
+        }
+        return false
+    }
+
+    private fun validKeywordData(t: T): Boolean {
+        val resp: StoresByKeyword = t as StoresByKeyword
+        if(resp.code == "2000") {
+            return true
+        }
+        return false
+    }
+
     private fun checkValidResponseCode(t: T): Boolean {
         if (t as? StoresByData != null) {
             return validData(t)
+        } else if (t as? BaseRespData != null) {
+            return validDealData(t)
+        } else if (t as? StoresByKeyword != null) {
+            return validKeywordData(t)
         }
 
 //        when(t) {

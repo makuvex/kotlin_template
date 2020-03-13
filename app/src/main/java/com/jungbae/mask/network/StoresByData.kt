@@ -6,6 +6,12 @@ data class StoresByData (
     val stores : List<Store>
 )
 
+data class StoresByKeyword (
+    val code: String,
+    val count : Int,
+    val result : List<Store>
+)
+
 data class Store (
 
     val code : String = "",
@@ -20,7 +26,8 @@ data class Store (
 
     var convertedLat : Double = .0,
     var convertedLng : Double = .0,
-    var distance: Float = .0f
+    var distance: Float = .0f,
 
+    var favorite: Boolean = false
 )
 

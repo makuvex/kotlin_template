@@ -13,7 +13,7 @@ import com.afollestad.materialdialogs.callbacks.onShow
 import com.jakewharton.rxbinding3.view.clicks
 //import com.jungbae.mask.FirebaseService
 import com.jungbae.mask.R
-import com.jungbae.mask.SchoolFoodApplication
+import com.jungbae.mask.CommonApplication
 //import com.jungbae.mask.SchoolFoodPageView
 import com.jungbae.mask.network.*
 import com.jungbae.mask.network.preference.PreferenceManager
@@ -110,7 +110,7 @@ class SearchSchoolActivity : AppCompatActivity() {
     fun showMaterialDialog(data: SimpleSchoolData) {
         MaterialDialog(this).show {
             positiveButton(text = "확인") {
-                Toast.makeText(SchoolFoodApplication.context, "${data.name}가 추가되었습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(CommonApplication.context, "${data.name}가 추가되었습니다.", Toast.LENGTH_SHORT).show()
 
                 PreferenceManager.addSchoolData(data)
                 //FirebaseService.getInstance().createSchoolData(data)

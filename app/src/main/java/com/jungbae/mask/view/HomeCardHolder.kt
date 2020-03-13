@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.jungbae.mask.R
-import com.jungbae.mask.SchoolFoodApplication
+import com.jungbae.mask.CommonApplication
 import com.jungbae.mask.network.SimpleSchoolMealData
 import com.jungbae.mask.network.Store
 import com.jungbae.mask.network.StoresByData
@@ -106,7 +106,7 @@ class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
     fun updateUI(option: Boolean) {
         when(option) {
             true ->  {
-                val ani = AnimationUtils.loadAnimation(SchoolFoodApplication.context, R.anim.shake)
+                val ani = AnimationUtils.loadAnimation(CommonApplication.context, R.anim.shake)
                 itemView.delete.startAnimation(ani)
                 itemView.delete.visibility = View.VISIBLE
             }

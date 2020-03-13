@@ -26,6 +26,12 @@ import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.InterstitialAd
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.formats.UnifiedNativeAdView
+import com.google.android.gms.ads.rewarded.RewardItem
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdCallback
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.gms.common.internal.service.Common
 import com.google.android.gms.location.*
 import com.google.android.material.snackbar.Snackbar
 import com.jakewharton.rxbinding3.view.clicks
@@ -59,14 +65,16 @@ import kotlin.collections.ArrayList
 import com.naver.maps.geometry.LatLng;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.*
+import com.naver.maps.map.CameraUpdate.REASON_DEVELOPER
+import com.naver.maps.map.CameraUpdate.REASON_GESTURE
+import com.naver.maps.map.overlay.InfoWindow
 import com.naver.maps.map.overlay.OverlayImage
 import com.naver.maps.map.util.MarkerIcons
-
-enum class SchoolDataIndex(val index: Int) {
-    HEAD(0),
-    ROW(1),
-    RESULT_CODE(1)
-}
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.lang.Exception
 
 
 enum class ActivityResultIndex(val index: Int) {
@@ -83,6 +91,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var deleteSubject: PublishSubject<Store>
     private lateinit var backPressedSubject: BehaviorSubject<Long>
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    private lateinit var favoriteStores: ArrayList<Store>
+
     lateinit var locationRequest: LocationRequest
     lateinit var locationCallback: LocationCallback
     val REQUEST_ACCESS_FINE_LOCATION = 1000
@@ -92,7 +103,12 @@ class MainActivity : AppCompatActivity() {
 
     var lastLat: Double = .0
     var lastLng: Double = .0
+    var adRewardCount = 0
 
+    private lateinit var myPos: LatLng
+    private var myMarker: Marker? = null
+
+    var cameraChangedReason: Int = REASON_DEVELOPER
     private lateinit var mMap: NaverMap
     private lateinit var mapView: MapView
     private lateinit var options: NaverMapOptions
@@ -101,6 +117,9 @@ class MainActivity : AppCompatActivity() {
     // 37.482461, 126.886809
 
     private lateinit var emitBlockSubject: PublishSubject<Store>
+
+    private lateinit var mRewardedVideoAd: RewardedAd
+    private lateinit var rewardedAdLoadCallback: RewardedAdLoadCallback
 
     private lateinit var interstitialAd: InterstitialAd
     private var interstitialAdBlock: () -> Unit = {
@@ -120,8 +139,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.e("@@@","@@@ onCreate")
         setContentView(R.layout.activity_main)
-
-
+//
+//        intent.extras?.getString("link")?.let {
+//            val array = it.split(",")
+//            Log.e("@@@","@@@ array ${array}")
+//            lastLat = array[0].toDouble()
+//            lastLng = array[1].toDouble()
+//
+//            Toast.makeText(CommonApplication.context, "인텐트 받음 ", Toast.LENGTH_LONG).show()
+//        } ?: Toast.makeText(CommonApplication.context, "인텐트 없음 ", Toast.LENGTH_LONG).show()
 
         initAd()
         //FirebaseService.getInstance().logEvent(SchoolFoodPageView.MAIN)
@@ -139,11 +165,8 @@ class MainActivity : AppCompatActivity() {
         bindUI()
 
 
-        if (ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            initLocation()
-        } else {
-            requestLocationPermission()
-        }
+        requestFavoriteStore()
+
 
         //initMap()
         //requestApi()
@@ -161,12 +184,11 @@ class MainActivity : AppCompatActivity() {
 
 
 
-
-
-
-//        swipe_refresh.setOnRefreshListener {
-//            requestApi()
-//        }
+        if (ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            initLocation()
+        } else {
+            requestLocationPermission()
+        }
 
     }
 
@@ -178,8 +200,32 @@ class MainActivity : AppCompatActivity() {
         backPressedSubject = BehaviorSubject.createDefault(0L)
         emitBlockSubject = PublishSubject.create()
 
+        favoriteStores = ArrayList()
         storesList = ArrayList()
         cardAdapter = HomeRecyclerAdapter(storesList, selectedSubject, deleteSubject)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        Log.e("@@@","@@@ onNewIntent ${intent?.getStringExtra("link")}")
+        try {
+            intent?.getStringExtra("link")?.let { link ->
+                val array = link.split(",")
+                val lat = array[0] as String
+                val lng = array[1] as String
+
+
+                requestApi(lat.toDouble(), lng.toDouble())
+
+                //startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+//                startActivity(Intent(this, DealDetailActivity::class.java)?.apply {
+//                    putExtra("url", link)
+//                })
+
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onDestroy() {
@@ -197,7 +243,31 @@ class MainActivity : AppCompatActivity() {
         backPressedSubject.onNext(System.currentTimeMillis())
     }
 
-    fun initMap(lat: Double, lot: Double) {
+    fun requestFavoriteStore(completion: (() -> Unit)? = null) {
+        PreferenceManager.userSeq?.let {
+            favoriteStores.clear()
+            val task = NetworkService.getInstance().keyword(it.toString())
+                .throttleFirst(1, TimeUnit.SECONDS)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(ObservableResponse<StoresByKeyword>(
+                    onSuccess = {
+                        favoriteStores.addAll(it.result)
+
+                        completion?.let{
+                            it()
+                        }
+                        Log.e("@@@@@", "onSuccess keyword list ${it}")
+                    }, onError = {
+                        Log.e("@@@@@", "@@@@@ error keyword list $it")
+                        //swipe_refresh.isRefreshing = false
+                        Toast.makeText(CommonApplication.context, "서버와의 통신이 원할하지 않습니다.", Toast.LENGTH_LONG).show()
+                    }
+                ))
+            disposeBag.add(task)
+
+        }
+    }
+    fun initMap(lat: Double, lot: Double, completion: (() -> Unit)? = null) {
         NaverMapSdk.getInstance(this).client = NaverMapSdk.NaverCloudPlatformClient("syr5kxfrr1")
 
         mapView = naver_mapView
@@ -205,11 +275,27 @@ class MainActivity : AppCompatActivity() {
             naverMap.moveCamera(CameraUpdate.toCameraPosition(CameraPosition(LatLng(lat, lot), 12.0)))
             mMap = naverMap
 
+            mMap.addOnCameraIdleListener {
+                Log.e("@@@","@@@ addOnCameraIdleListener ${mMap.cameraPosition.target}")
+
+                if(cameraChangedReason == REASON_GESTURE) {
+                    createTimerFor(100)
+                    requestFavoriteStore {
+                        requestApi(mMap.cameraPosition.target.latitude, mMap.cameraPosition.target.longitude)
+                    }
+                } else {
+                }
+            }
+
+            mMap.addOnCameraChangeListener { reason, animated ->
+                cameraChangedReason = reason
+            }
+
             mMap.setOnMapClickListener { point, coord ->
                 //Toast.makeText(this, "${coord.latitude}, ${coord.longitude}", Toast.LENGTH_SHORT).show()
-                Log.e("@@@","point ${point}")
-                Log.e("@@@","coord ${coord}")
-                Log.e("@@@","storesList.size ${storesList.size}")
+//                Log.e("@@@","point ${point}")
+//                Log.e("@@@","coord ${coord}")
+//                Log.e("@@@","storesList.size ${storesList.size}")
                 val currentLoc = Location("current").apply {
                     latitude = coord.latitude
                     longitude = coord.longitude
@@ -224,48 +310,20 @@ class MainActivity : AppCompatActivity() {
                         longitude = store.convertedLng
                     })
 
-                    Log.e("@@@", "@@@ distance ${distance}")
-                    Log.e("@@@", "@@@ store ${store}")
+//                    Log.e("@@@", "@@@ distance ${distance}")
+//                    Log.e("@@@", "@@@ store ${store}")
 
                     if(dest.distance > distance) {
                         dest = store
                         dest.distance = distance
                     }
                 }
-
-                showMaterialDialog(dest)
-
-
-//                val store = storesList.filter {
-//                    val est = currentLoc.distanceTo(Location("destination").apply {
-//                        latitude = it.convertedLat
-//                        longitude = it.convertedLng
-//                    })
-//                    Log.e("@@@","@@@ distance ${distance}")
-//
-//                    if(distance > est) {
-//                        distance = est
-//                    }
-//                    distance > est
-//
-//                    //coord.latitude.toString().contains(it.convertedLat.toString()) && coord.longitude.toString().contains(it.convertedLng.toString())
-//                }
-//                store?.let {
-//                    Log.e("@@@","@@@ ${it}")
-//                   // showMaterialDialog(it)
-//                } ?: Toast.makeText(this, "좌표 정보 불일", Toast.LENGTH_SHORT).show()
-
-
+                Log.e("@@@", "@@@ distance ${dest.distance}")
+                if(dest.distance < 100) {
+                    showMaterialDialog(dest)
+                }
             }
 
-            mMap.addOnCameraIdleListener {
-
-            }
-
-            mMap.addOnCameraChangeListener { reason, animated ->
-                // reason : reason camera changing
-                // animated : is animated when camera changed
-            }
             stopTimer()
         }
 
@@ -288,9 +346,18 @@ class MainActivity : AppCompatActivity() {
                     Log.e("@@@", "init location get success ${location.latitude} , ${location.longitude} @@@")
 //                    stopTimer()
 
+                    myPos = LatLng(location.latitude, location.longitude)
 
-                    initMap(location.latitude, location.longitude)
-                    requestApi(location.latitude, location.longitude)
+
+                    var latitude: Double = if(lastLat != .0) lastLat else location.latitude
+                    var longitude: Double = if(lastLng != .0) lastLng else location.longitude
+
+                    initMap(latitude, longitude)
+
+                    requestFavoriteStore {
+                        requestApi(latitude, longitude)
+                    }
+
                 }
             }
             .addOnFailureListener {
@@ -316,7 +383,11 @@ class MainActivity : AppCompatActivity() {
                         fusedLocationClient.removeLocationUpdates(locationCallback)
 
                         initMap(location.latitude, location.longitude)
-                        requestApi(location.latitude, location.longitude)
+                        requestFavoriteStore {
+                            requestApi(location.latitude, location.longitude)
+                        }
+
+
                         //stopTimer()
                     }
                 }
@@ -402,6 +473,27 @@ class MainActivity : AppCompatActivity() {
             override fun onAdLeftApplication() { Log.e("@@@","onAdLeftApplication") }
             override fun onAdClosed() { Log.e("@@@","onAdClosed") }
         }
+
+
+
+        loadRewardedAd()
+
+    }
+
+    private fun loadRewardedAd() {
+        mRewardedVideoAd = RewardedAd(this, BuildConfig.ad_reward_id)
+        mRewardedVideoAd.loadAd(
+            AdRequest.Builder().build(),
+            object : RewardedAdLoadCallback() {
+                override fun onRewardedAdLoaded() {
+                    //Toast.makeText(this@MainActivity, "onRewardedAdLoaded", Toast.LENGTH_LONG).show()
+                }
+
+                override fun onRewardedAdFailedToLoad(errorCode: Int) {
+                    //Toast.makeText(this@MainActivity, "onRewardedAdFailedToLoad", Toast.LENGTH_LONG).show()
+                }
+            }
+        )
     }
 
     fun initializeUI() {
@@ -478,15 +570,9 @@ class MainActivity : AppCompatActivity() {
 
         val fullAdCloseDisposable = emitBlockSubject
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { meal ->
+            .subscribe { data ->
                 stopTimer()
-//                val intent = Intent(this, SchoolFoodDetailActivity::class.java)
-//                intent.putExtra(PreferencesConstant.SCHOOL_CODE, meal.schoolCode)
-//                intent.putExtra(PreferencesConstant.OFFICE_SC_CODE, meal.officeCode)
-//                intent.putExtra(PreferencesConstant.SCHOOL_NAME, meal.name)
-//
-//                simpleSchoolMealData = null
-//                startActivity(intent)
+                addFavorite(data)
             }
 
         disposeBag.addAll(
@@ -560,14 +646,19 @@ class MainActivity : AppCompatActivity() {
                         }
                     })
 
-                    list?.first()?.let {
-                        requestApi(it.lat.toDouble(), it.lng.toDouble())
+                    if (list != null && list.size > 0) {
+                        requestApi(list.first().lat.toDouble(), list.first().lng.toDouble())
+                    } else {
+                        Toast.makeText(CommonApplication.context, "검색 결과과 없습니다. 띄어쓰기 및 시, 구 입력을 확인해주세요.", Toast.LENGTH_LONG).show()
                     }
+//                    list?.first()?.let {
+//                        requestApi(it.lat.toDouble(), it.lng.toDouble())
+//                    }
                 }, onError = {
                     Log.e("@@@@@", "@@@@@ error $it")
                     //swipe_refresh.isRefreshing = false
                     stopTimer()
-                    Toast.makeText(SchoolFoodApplication.context, "서버와의 통신이 원할하지 않습니다.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(CommonApplication.context, "서버와의 통신이 원할하지 않습니다.", Toast.LENGTH_LONG).show()
                 }
             ))
         disposeBag.add(task)
@@ -575,76 +666,194 @@ class MainActivity : AppCompatActivity() {
 
     fun requestApi(lat: Double, lng: Double) {
         Log.e("", "@@@ requestApi lat: ${lat}, lng: ${lng}")
-        storesList.clear()
-        mapList.map{ it.map = null }
-        mapList.clear()
+        //storesList.clear()
+//        mapList.map{ it.map = null }
+//        mapList.clear()
 
         lastLat = lat
         lastLng = lng
 
-
-        val task = NetworkService.getInstance().getStoresByGeo(lat, lng, 1000)
+        val task = NetworkService.getInstance().getStoresByGeo(lat, lng, 500)
+            .throttleFirst(1, TimeUnit.SECONDS)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeWith(ObservableResponse<StoresByData>(
                 onSuccess = {
-                    val list = it.stores.sortedWith(compareByDescending { data ->
+                    var list = it.stores.sortedWith(compareByDescending { data ->
                         when {
                             data.remain_stat == "plenty" -> 3
                             data.remain_stat == "some" -> 2
                             data.remain_stat == "few" -> 1
                             data.remain_stat == "empty" -> 0
-                            else -> -1
+                            data.remain_stat == "break" -> -1
+                            else -> -2
                         }
                     })
 
-                    list.map {
+                    list.map { it ->
                         it.convertedLat = it.lat.toDouble()
                         it.convertedLng = it.lng.toDouble()
 
-                        Log.e("@@@","@@@ convert ${it}")
-                        storesList.add(it)
+                        //Log.e("@@@","@@@ convert ${it}")
+                        if(!storesList.contains(it)) {
+                            storesList.add(it)
+                        }
                     }
 
+                    myMarker?.let {
+                        it.map = null
+                    }
+
+                    // 내위치
+                    myMarker = Marker()
+                    myMarker?.position = LatLng(myPos.latitude, myPos.longitude)
+                    myMarker?.width = 100//Marker.SIZE_AUTO
+                    myMarker?.height = 100//Marker.SIZE_AUTO
+                    myMarker?.map = mMap
+                    myMarker?.icon = OverlayImage.fromResource(R.drawable.man)
+                    val cap = InfoWindow()
+                    cap.adapter = object : InfoWindow.DefaultTextAdapter(CommonApplication.context) {
+                        override fun getText(infoWindow: InfoWindow): CharSequence {
+                            return "나"
+                        }
+                    }
+                    cap.open(myMarker!!)
+                    //mapList.add(myMarker)
 
                     for(store in list) {
                         val marker = Marker()
 
-                        marker.position = LatLng(store.lat.toDouble(), store.lng.toDouble())
-                        Log.e("@@@","@@@ position ${marker.position}")
-                        marker.map = mMap
+                        marker.position = LatLng(store.convertedLat, store.convertedLng)
+                        //Log.e("@@@","@@@ position ${marker.position}")
+
                         marker.width = Marker.SIZE_AUTO
                         marker.height = Marker.SIZE_AUTO
 
-                        marker.captionColor = Color.rgb(42, 77, 133)
-                        marker.captionHaloColor = Color.WHITE
+                        marker.map = mMap
+
+//                        marker.captionColor = Color.rgb(42, 77, 133)
+//                        marker.captionHaloColor = Color.WHITE
+                        marker.infoWindow?.close()
+                        var infoText = ""
                         when {
                             store.remain_stat == "plenty" -> {
                                 marker.icon = MarkerIcons.GREEN
-                                marker.captionText = "100개이상"
+                                infoText = "100+"
                             }
                             store.remain_stat == "some" -> {
                                 marker.icon = MarkerIcons.YELLOW
-                                marker.captionText = "30~100개"
+                                infoText = "30+"
                             }
                             store.remain_stat == "few" -> {
                                 marker.icon = MarkerIcons.RED
-                                marker.captionText = "2~30개"
+                                infoText = "2+"
                             }
                             store.remain_stat == "empty" -> {
                                 marker.icon = MarkerIcons.GRAY
-                                marker.captionText = "1개 이하"
+                                infoText = "품절"
+                            }
+                            store.remain_stat == "break" -> {
+                                marker.icon = MarkerIcons.GRAY
+                                infoText = "판매중지"
                             }
                             else -> {
-                                marker.icon = MarkerIcons.GRAY
-                                marker.captionText = "없음"
+                                marker.icon = MarkerIcons.BLACK
+                                infoText = "품절"
+                            }
+                        }
+                        val infoWindow = InfoWindow()
+                        infoWindow.adapter = object : InfoWindow.DefaultTextAdapter(CommonApplication.context) {
+                            override fun getText(infoWindow: InfoWindow): CharSequence {
+                                return infoText
+                            }
+                        }
+                        infoWindow.open(marker)
+
+
+                        if(store.name == "대명약국") {
+                            Log.e("@@@","@@@    ")
+                        } else if(store.name == "진한약국") {
+                            Log.e("@@@","@@@    ")
+                        }
+
+                        favoriteStores.filter{ it?.code == store?.code }?.let {
+                            if(it.isNotEmpty()) {
+                                Log.e("@@@", "@@@ 즐겨찾기 설정됨")
+//                                val infoWindow = InfoWindow()
+//                                infoWindow.adapter = object : InfoWindow.DefaultTextAdapter(CommonApplication.context) {
+//                                    override fun getText(infoWindow: InfoWindow): CharSequence {
+//                                        return "즐겨찾기"
+//                                    }
+//                                }
+//                                infoWindow.open(marker)
+
+                                //marker.map = null
+                                marker.icon = OverlayImage.fromResource(R.drawable.favorite)
+//
+//                                val currentLoc = Location("current").apply {
+//                                    latitude = store.convertedLat
+//                                    longitude = store.convertedLng
+//                                }
+//
+//                                //dest.distance = 1000.0f
+//                                for(store in mapList) {
+//                                    val distance = currentLoc.distanceTo(Location("destination").apply {
+//                                        latitude = store.convertedLat
+//                                        longitude = store.convertedLng
+//                                    })
+
+//                                mapList.filter{ marker ->
+//                                    if(marker.position.latitude == store.convertedLat && marker.position.longitude == store.convertedLng) {
+//                                        Log.e("@@@","@@@ true name ${store.name}")
+//                                        true
+//                                    } else {
+//                                        Log.e("@@@","@@@ false name ${store.name}")
+//                                        false
+//                                    }
+//                                }.map{ marker ->
+//                                    marker.map = null
+//                                }
+//                                val result = mapList.removeIf{ marker ->
+//                                    marker.position.latitude == store.convertedLat && marker.position.longitude == store.convertedLng
+//                                }
+
+//                                Log.e("@@@","@@@ removeIf result ${result}, ${store.name}")
+                                //marker.map = mMap
+
                             }
                         }
 
-                        mapList.add(marker)
+
+//                        if(favoriteStores.size > 0) {
+//                            favoriteStores.filter { it != null && store != null && it?.code == store?.code }?.let {
+//
+//                                //Log.e("@@@","@@@ it.size ${it.size}")
+//                                if(it.isNotEmpty()) {
+//                                    Log.e("@@@","@@@ 즐겨찾기 설정됨")
+//                                    marker.icon =  OverlayImage.fromResource(R.drawable.favorite)
+//                                    store.favorite = true
+//                                } else {
+//                                    store.favorite = false
+//                                }
+//                            }
+//                        }
+
+
+
+                        val temp = mapList.filter { it.position != marker.position }
+                        temp?.let {
+                            mapList.add(marker)
+                        }
+
+
+                        //storesList.removeIf{ it.code == store.code }
+
+
+                        //mapList.add(marker)
                     }
 
                     val cameraUpdate = CameraUpdate.scrollTo(LatLng(lastLat, lastLng)).animate(CameraAnimation.Easing)
                     mMap.moveCamera(cameraUpdate)
+
 
                     //mMap.moveCamera(CameraUpdate.zoomTo(14.0))
                     //swipe_refresh.isRefreshing = false
@@ -655,7 +864,7 @@ class MainActivity : AppCompatActivity() {
                     Log.e("@@@@@", "@@@@@ error $it")
                     //swipe_refresh.isRefreshing = false
                     stopTimer()
-                    Toast.makeText(SchoolFoodApplication.context, "서버와의 통신이 원할하지 않습니다.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(CommonApplication.context, "서버와의 통신이 원할하지 않습니다.", Toast.LENGTH_LONG).show()
                 }
             ))
         disposeBag.add(task)
@@ -673,10 +882,13 @@ class MainActivity : AppCompatActivity() {
                 return "2~30개"
             }
             "empty" -> {
-                return "1개 이하"
+                return "품절"
+            }
+            "break" -> {
+                return "판매중지"
             }
             else -> {
-                return "없음"
+                return "품절"
             }
         }
     }
@@ -719,26 +931,88 @@ class MainActivity : AppCompatActivity() {
         cardAdapter.notifyDataSetChangedWith(option.isSelected)
     }
 
-    fun showMaterialDialog(data: Store) {
+    fun showMaterialDialogReward(data: Store) {
         MaterialDialog(this).show {
-            positiveButton(text = "확인") {
-                //Toast.makeText(SchoolFoodApplication.context, "${data.name} 홈카드가 삭제 되었습니다.", Toast.LENGTH_SHORT).show()
+            positiveButton(text = "확인") {}
+            negativeButton(text = "취소") {
 
-//                if(storesList.removeIf { school ->  school.schoolCode == data.schoolCode && school.officeCode == data.officeCode }) {
-//                    PreferenceManager.removeSchoolData(data.officeCode, data.schoolCode)
-//                    reloadRecylerView()
-//                }
-//                if(storesList.size == 0) {
-//                    //option.callOnClick()
-//                }
-                //PreferenceManager.addSchoolData(data)
+
+
             }
             onShow {
                 title(text = data.name )
                 val msg = "수량 : " + remainStat(data.remain_stat) + "\n\n주소 : " + data.addr + "\n\n입고시간 : " + data.stock_at
                 message(text = msg)
             }
+        }
+    }
 
+    fun showMaterialDialog(data: Store) {
+        var str: String = if(adRewardCount % 4 == 0) "광고보고[즐겨찾기] 하기" else "즐겨찾기"
+        favoriteStores.filter{it.code == data.code}?.let {
+            if(it.isNotEmpty()) {
+                str = "즐겨찾기 해제"
+            }
+        }
+
+        MaterialDialog(this).show {
+            positiveButton(text = "확인") {}
+            negativeButton(text = str) {
+
+                PreferenceManager.userSeq?.let {
+                    if(str == "즐겨찾기" || str == "광고보고[즐겨찾기] 하기") {
+
+                        if(favoriteStores.size >= 10) {
+                            Toast.makeText(CommonApplication.context, "즐겨찾기는 10개까지 가능합니다. 다른 스토어를 먼저 해제하고 시도하여 주세요.", Toast.LENGTH_SHORT).show()
+                        } else if (mRewardedVideoAd.isLoaded) {
+                            //Toast.makeText(this@MainActivity, "${adRewardCount%3}", Toast.LENGTH_LONG).show()
+                            if(adRewardCount % 4 == 0) {
+                                mRewardedVideoAd.show(
+                                    this@MainActivity,
+                                    object : RewardedAdCallback() {
+                                        override fun onUserEarnedReward(rewardItem: RewardItem) {
+                                            //Toast.makeText(this@MainActivity, "onUserEarnedReward", Toast.LENGTH_LONG).show()
+                                            //addCoins(rewardItem.amount)
+                                            loadRewardedAd()
+                                            addFavorite(data)
+                                            adRewardCount += 1
+                                        }
+
+                                        override fun onRewardedAdClosed() {
+                                            loadRewardedAd()
+                                        }
+
+//                                    override fun onRewardedAdFailedToShow(errorCode: Int) {
+//                                        Toast.makeText(this@MainActivity, "onRewardedAdFailedToShow", Toast.LENGTH_LONG)
+//                                            .show()
+//                                    }
+//
+//                                    override fun onRewardedAdOpened() {
+//                                        Toast.makeText(this@MainActivity, "onRewardedAdOpened", Toast.LENGTH_LONG)
+//                                            .show()
+//                                    }
+                                    }
+                                )
+                            } else if(adRewardCount % 2 == 0) {
+                                selectedSubject.onNext(data)
+                                adRewardCount += 1
+                            } else {
+                                addFavorite(data)
+                            }
+
+                        } else {
+                            addFavorite(data)
+                        }
+                    } else {
+                        removeFavorite(data)
+                    }
+                }
+            }
+            onShow {
+                title(text = data.name )
+                val msg = "수량 : " + remainStat(data.remain_stat) + "\n\n주소 : " + data.addr + "\n\n입고시간 : " + data.stock_at
+                message(text = msg)
+            }
         }
     }
 
@@ -759,7 +1033,62 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    fun addFavorite(data: Store) {
+        PreferenceManager.userSeq?.let {
+            val d = NetworkService.getInstance()
+                .registKeyword(data.convertedLat, data.convertedLng, it, data.code)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(ObservableResponse<BaseResult>(
+                    onSuccess = {
+                        Log.e(
+                            "@@@",
+                            "@@@ registUser onSuccess ${it.reflectionToString()}"
+                        )
+
+                        CommonApplication.subscribeTopic(data.code)
+                        mapList.map { it.map = null }
+                        mapList.clear()
+                        requestFavoriteStore {
+                            requestApi(lastLat, lastLng)
+                            Toast.makeText(CommonApplication.context, "즐겨찾기에 ${data.name}이 추가 되었습니다.", Toast.LENGTH_LONG).show()
+                        }
+                    }, onError = {
+                        Log.e("@@@", "@@@ error $it")
+                    }
+                ))
+            disposeBag.add(d)
+        }
+    }
+
+    fun removeFavorite(data: Store) {
+        PreferenceManager.userSeq?.let {
+            val t = NetworkService.getInstance()
+                .deleteKeyword(data.code, it)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(ObservableResponse<BaseResult>(
+                    onSuccess = {
+                        Log.e("@@@", "@@@ registUser onSuccess ${it.reflectionToString()}")
+
+                        CommonApplication.unsubscribeTopic(data.code)
+                        mapList.map{ it.map = null }
+                        mapList.clear()
+                        requestFavoriteStore {
+                            requestApi(lastLat, lastLng)
+                            Toast.makeText(CommonApplication.context, "즐겨찾기에 ${data.name}이 제거 되었습니다.", Toast.LENGTH_LONG).show()
+                        }
+
+                    }, onError = {
+                        Log.e("@@@", "@@@ error $it")
+                    }
+                ))
+            disposeBag.add(t)
+        }
+
+    }
     fun createTimerFor(millis: Long) {
+        stopTimer()
+
+        //drawer_layout.enableDisableViewGroup(false)
         val max = 10000L
         wrap_progress_bar.visibility = View.VISIBLE
         progress_bar.progress = 0
@@ -767,13 +1096,16 @@ class MainActivity : AppCompatActivity() {
             override fun onTick(p0: Long) {
                 val f: Float = (max  - p0)/max.toFloat()
                 val p = (f * 100).toLong()
-                //Log.e("@@@","@@@ p0 ${p0}, p ${p}, ${p.toInt()}")
+                Log.e("@@@","@@@ p0 ${p0}, p ${p}, ${p.toInt()}")
 
                 progress_bar.progress = p.toInt()
             }
 
             override fun onFinish() {
-                createTimerFor(100)
+                Log.e("@@@","@@@ onFinish")
+                if(countDownTimer != null) {
+                    createTimerFor(100)
+                }
             }
         }
         countDownTimer?.start()
@@ -782,5 +1114,7 @@ class MainActivity : AppCompatActivity() {
     fun stopTimer() {
         wrap_progress_bar.visibility = View.GONE
         countDownTimer?.cancel()
+        countDownTimer = null
+        ///drawer_layout.enableDisableViewGroup(true)
     }
 }

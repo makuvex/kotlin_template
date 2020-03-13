@@ -73,6 +73,13 @@ data class SimpleSchoolMealData(val name: String,
                                 val officeCode: String,
                                 val today: Boolean = false)
 
+data class UserModel(val result: User): BaseRespData()
+data class User(val seq: Int, val comment: Int, val recommend: Int)
+
+data class Keywords(val result: ArrayList<AlertKeyword>): BaseRespData()
+data class AlertKeyword(val keyword: String = "", var alert: Int = 0)
+
+data class BaseResult(val result: Unit?): BaseRespData()
 
 /*
 class SchoolData {

@@ -11,6 +11,9 @@ class ApiSetting {
         const val GET_MASK_SALER                    = "/corona19-masks/v1/stores/json"
         const val GET_STORES_BY_GEO                 = "/corona19-masks/v1/storesByGeo/json"
         const val GET_STORES_BY_ADDR                = "/corona19-masks/v1/storesByAddr/json"
+
+        const val User                      = "/push"
+        const val Keyword                   = "/mask"
     }
 
 }

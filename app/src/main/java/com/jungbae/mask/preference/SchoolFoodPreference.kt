@@ -4,7 +4,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import com.jungbae.mask.SchoolFoodApplication
+import com.jungbae.mask.CommonApplication
 import com.jungbae.mask.network.SimpleSchoolData
 
 object SchoolFoodPreferencesConstant {
@@ -24,7 +24,7 @@ class SchoolFoodPreference {
         private var instance: SharedPreferences? = null
 
         init {
-            instance = SchoolFoodApplication.context.getSharedPreferences("SchoolFood", 0)
+            instance = CommonApplication.context.getSharedPreferences("SchoolFood", 0)
         }
 
 

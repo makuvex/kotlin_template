@@ -6,7 +6,7 @@ import com.afollestad.rxkprefs.RxkPrefs
 import com.afollestad.rxkprefs.rxkPrefs
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import com.jungbae.mask.SchoolFoodApplication
+import com.jungbae.mask.CommonApplication
 import com.jungbae.mask.network.SimpleSchoolData
 
 
@@ -24,6 +24,8 @@ object PreferencesConstant {
     val SCHOOL_DATA = "SCHOOL_DATA"
 
     ///////////
+    val fcm_token   = "FCM_TOKEN"
+    val user_seq    = "USER_SEQUENCE"
 
     val PERMISSION_NOTICE = "PERMISSION_NOTICE"
 }
@@ -37,8 +39,38 @@ class PreferenceManager {
 
         init {
             Log.e("@@@","@@@ PreferenceManager init")
-            instance = instance ?: rxkPrefs(SchoolFoodApplication.context, SchoolFoodApplication.context.packageName, AppCompatActivity.MODE_PRIVATE)
+            instance = instance ?: rxkPrefs(CommonApplication.context, CommonApplication.context.packageName, AppCompatActivity.MODE_PRIVATE)
         }
+
+        @JvmStatic
+        var fcmToken: String?
+            get() {
+                instance?.run {
+                    return string(PreferencesConstant.fcm_token, "").get()
+                }
+                return null
+            }
+            set(data) {
+                instance?.let {} ?: return
+                data?.let {
+                    instance?.string(PreferencesConstant.fcm_token, "")?.set(it)
+                }
+            }
+
+        @JvmStatic
+        var userSeq: Int?
+            get() {
+                instance?.run {
+                    return integer(PreferencesConstant.user_seq, -1).get()
+                }
+                return null
+            }
+            set(data) {
+                instance?.let {} ?: return
+                data?.let {
+                    instance?.integer(PreferencesConstant.user_seq, -1)?.set(it)
+                }
+            }
 
         @JvmStatic
         var permissionNotice: Boolean

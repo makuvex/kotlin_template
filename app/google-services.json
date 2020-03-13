@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "727871588815",
+    "firebase_url": "https://searchmask-13533.firebaseio.com",
+    "project_id": "searchmask-13533",
+    "storage_bucket": "searchmask-13533.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:727871588815:android:074ca7c69e210b732b6aba",
+        "android_client_info": {
+          "package_name": "com.jungbae.mask"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "727871588815-kp1slc73l5ijrml6ms75bscse4gn56rc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKIzLmMdBd4WH4fHiNBmXDTYTILPf0S1Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "727871588815-kp1slc73l5ijrml6ms75bscse4gn56rc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "727871588815-0782vt521k554qani3oamobueo3l1bgo.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.jungbaenet.mask"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

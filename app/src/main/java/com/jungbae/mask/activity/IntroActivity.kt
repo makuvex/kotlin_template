@@ -3,9 +3,12 @@ package com.jungbae.mask.activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.callbacks.onShow
+import com.jungbae.mask.CommonApplication
 import com.jungbae.mask.R
 import com.jungbae.mask.network.Store
 import com.jungbae.mask.network.preference.PreferenceManager
@@ -15,6 +18,7 @@ class IntroActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
+
 
         Handler().postDelayed({
             if(!PreferenceManager.permissionNotice) {

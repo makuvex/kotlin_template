@@ -1,6 +1,5 @@
 package com.jungbae.mask.network
 
-import android.util.Log
 import io.reactivex.Observable
 
 /*
@@ -37,10 +36,12 @@ class NetworkService {
         }
     }
 
-    private val service: SchoolFoodService
+    private val service: MaskService
+    private val pushService: PushService
 
     init {
-        service = SchoolFoodService.create()
+        service = MaskService.create()
+        pushService = PushService.create()
     }
 
     fun getMaskSaler(page: Int, perPage: Int): Observable<MaskSaler> {
@@ -53,6 +54,22 @@ class NetworkService {
 
     fun getStoresByAddr(addr: String): Observable<StoresByData> {
         return service.getStoresByAddr(addr)
+    }
+    fun registUser(fcmToken: String, deviceId: String): Observable<UserModel> {
+        return pushService.registUser(fcmToken, deviceId)
+    }
+
+    fun keyword(userSeq: String): Observable<StoresByKeyword> {
+        return pushService.keyword(userSeq)
+    }
+
+    fun registKeyword(lat: Double, lng: Double, userSeq: Int, code: String): Observable<BaseResult> {
+        return pushService.registKeyword(lat, lng, userSeq, code)
+    }
+
+
+    fun deleteKeyword(keyword: String, userSeq: Int): Observable<BaseResult> {
+        return pushService.deleteKeyword(keyword, userSeq)
     }
 
     /*
