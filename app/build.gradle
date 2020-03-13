@@ -11,7 +11,7 @@ android {
         applicationId "com.jungbae.mask"
         minSdkVersion 24
         targetSdkVersion 29
-        versionCode 2
+        versionCode 3
         versionName "1.1"
 
     }
@@ -49,7 +49,6 @@ android {
             buildConfigField "String", "ad_reward_id", "\"ca-app-pub-7541722331477577/5263072724\""
 
             minifyEnabled false
-//            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }

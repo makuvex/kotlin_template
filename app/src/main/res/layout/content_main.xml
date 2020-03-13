@@ -26,7 +26,7 @@
                 app:layout_constraintRight_toRightOf="parent"
                 app:layout_constraintBottom_toTopOf="@id/adView" />
 
-
+<!--
         <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view"
                 android:layout_width="match_parent"
@@ -38,7 +38,7 @@
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintRight_toRightOf="parent"
                 app:layout_constraintBottom_toTopOf="@id/adView" />
-
+-->
         <com.naver.maps.map.MapView
                 android:id="@+id/naver_mapView"
                 android:layout_width="0dp"

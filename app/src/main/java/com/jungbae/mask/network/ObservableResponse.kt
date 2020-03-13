@@ -83,16 +83,5 @@ open class ObservableResponse<T>(val onSuccess: ((T) -> Unit)? = {}, val onError
         return false
     }
 
-    private fun validSchoolMealData(t: T): Boolean {
-        val meal: SchoolMealData = t as SchoolMealData
-        val code = meal.mealServiceDietInfo?.let {
-            it.get(SchoolDataIndex.HEAD.index).head?.get(SchoolDataIndex.RESULT_CODE.index).result.code
-        }
-        //val code = meal?.mealServiceDietInfo?.get(SchoolDataIndex.HEAD.index).head?.get(SchoolDataIndex.RESULT_CODE.index).result.code
 
-        if (code == "INFO-000") {
-            return true
-        }
-        return false
-    }
 }
