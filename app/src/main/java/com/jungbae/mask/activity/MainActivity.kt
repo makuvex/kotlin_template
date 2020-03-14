@@ -4,6 +4,7 @@ import android.Manifest
 import android.Manifest.*
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.location.Location
 import android.net.Uri
@@ -11,10 +12,13 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Looper
 import android.util.Log
+import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.callbacks.onShow
@@ -28,6 +32,7 @@ import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdCallback
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.gms.location.*
+import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.jakewharton.rxbinding3.view.clicks
 import com.jungbae.mask.*
@@ -36,13 +41,14 @@ import com.jungbae.mask.R
 import com.jungbae.mask.network.*
 import com.jungbae.mask.network.preference.PreferenceManager
 import com.jungbae.mask.view.increaseTouchArea
+import com.jungbae.mask.activity.SearchStoreActivity
 import com.naver.maps.map.NaverMapSdk
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.activity_main.search
+
 import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.content_main.naver_mapView
 import kotlinx.android.synthetic.main.progress_bar.*
@@ -57,6 +63,8 @@ import com.naver.maps.map.CameraUpdate.REASON_GESTURE
 import com.naver.maps.map.overlay.InfoWindow
 import com.naver.maps.map.overlay.OverlayImage
 import com.naver.maps.map.util.MarkerIcons
+import kotlinx.android.synthetic.main.activity_main.view.*
+import kotlinx.android.synthetic.main.app_bar_main.*
 import java.lang.Exception
 import java.net.URL
 
@@ -66,7 +74,7 @@ enum class ActivityResultIndex(val index: Int) {
     OPTION(1)
 }
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
     private val disposeBag = CompositeDisposable()
 
     private lateinit var storesList: ArrayList<Store>
@@ -117,6 +125,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    var t = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -143,7 +152,7 @@ class MainActivity : AppCompatActivity() {
         bindUI()
         requestFavoriteStore()
 
-        fab.setOnClickListener { view ->
+        current_location.setOnClickListener { view ->
             //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show()
             if (ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 createTimerFor(100)
@@ -154,6 +163,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        refresh_location.setOnClickListener { view ->
+            if (ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                createTimerFor(100)
+                storesList.clear()
+                mapList.map{ it.map = null }
+                mapList.clear()
+                requestApi(lastLat, lastLng, false)
+            }
+        }
         if (ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             initLocation()
         } else {
@@ -200,6 +218,29 @@ class MainActivity : AppCompatActivity() {
         backPressedSubject.onNext(System.currentTimeMillis())
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        Log.d("@@@","@@@ onActivityResult ${resultCode} @@@")
+        if (requestCode == ActivityResultIndex.SEARCH.index) {
+            when (resultCode) {
+                Activity.RESULT_OK -> {
+                    val location = data?.getStringExtra("location")
+                    Log.e("@@@", "@@@ location ${location}")
+                    location?.let {
+                        try {
+                            val lat = it.split(",")[0].toDouble()
+                            val lng = it.split(",")[1].toDouble()
+                            requestApi(lat, lng)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun requestFavoriteStore(completion: (() -> Unit)? = null) {
         PreferenceManager.userSeq?.let {
             favoriteStores.clear()
@@ -229,7 +270,7 @@ class MainActivity : AppCompatActivity() {
 
         mapView = naver_mapView
         mapView.getMapAsync { naverMap ->
-            naverMap.moveCamera(CameraUpdate.toCameraPosition(CameraPosition(LatLng(lat, lot), 12.0)))
+            naverMap.moveCamera(CameraUpdate.toCameraPosition(CameraPosition(LatLng(lat, lot), 14.0)))
             mMap = naverMap
 
             mMap.addOnCameraIdleListener {
@@ -286,7 +327,60 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when(item.itemId) {
+            R.id.privacy -> {
+                //Toast.makeText(this@MainActivity, "준비중 입니다.", Toast.LENGTH_LONG).show()
+                startActivity(Intent(this, PrivacyActivity::class.java)?.apply {
+                    putExtra("url", "http://makuvex7.cafe24.com/mask_privacy")
+                })
+            }
+            R.id.license -> {
+                startActivity(Intent(this, LicenseActivity::class.java)?.apply {
+                    putExtra("url", "http://makuvex7.cafe24.com/nemodeal_aos_license")
+                })
+            }
+            R.id.version -> { showSingleDialog("버전 정보", "현재 버전 : " + "${getVersionInfo()}") }
+        }
+        drawer_layout.closeDrawer(GravityCompat.START)
+        return false
+    }
 
+    fun getVersionInfo(): String {
+        val info: PackageInfo = CommonApplication.context.packageManager.getPackageInfo(CommonApplication.context.packageName, 0)
+        return info.versionName
+    }
+
+    fun showDialog(title: String, msg: String, completion: ((Boolean) -> Unit)? = null) {
+        AndroidSchedulers.mainThread().scheduleDirect {
+            MaterialDialog(this).show {
+                positiveButton(text = "확인") { _ ->
+                    completion?.let{ it(true) }
+                }
+                negativeButton(text = "취소") { _ ->
+                    completion?.let{ it(false) }
+                }
+                onShow {
+                    title(text = title)
+                    message(text = msg)
+                }
+            }
+        }
+    }
+
+    fun showSingleDialog(title: String, msg: String, completion: ((Boolean) -> Unit)? = null) {
+        AndroidSchedulers.mainThread().scheduleDirect {
+            MaterialDialog(this).show {
+                positiveButton(text = "확인") { _ ->
+                    completion?.let{ it(true) }
+                }
+                onShow {
+                    title(text = title)
+                    message(text = msg)
+                }
+            }
+        }
+    }
 
     private fun initLocation() {
         if (ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
@@ -432,9 +526,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun initializeUI() {
-        increaseTouchArea(search, 50)
-        increaseTouchArea(option, 50)
+       // increaseTouchArea(search, 50)
+        increaseTouchArea(option, 80)
         option.isSelected = false
+
+        val toggle = ActionBarDrawerToggle(
+            this, drawer_layout, toolbar,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        )
+
+        drawer_layout.addDrawerListener(toggle)
+        drawer_layout.nav_view.itemIconTintList = null
+        toggle.syncState()
+
+        nav_view.setNavigationItemSelectedListener(this)
     }
 
     fun bindUI() {
@@ -456,8 +562,9 @@ class MainActivity : AppCompatActivity() {
             .throttleFirst(1, TimeUnit.SECONDS)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
-                //startActivity(ActivityResultIndex.SEARCH.index)
-                showMaterialInputDialog()
+                startActivity(ActivityResultIndex.SEARCH.index)
+
+                //showMaterialInputDialog()
                 Log.d("@@@", "searchDisposable")
             }
 
@@ -518,16 +625,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun startActivity(index: Int) {
-
-        when(index) {
-//            ActivityResultIndex.SEARCH.index ->
-//                startActivityForResult(Intent(this, SearchSchoolActivity::class.java), ActivityResultIndex.SEARCH.index)
-//            ActivityResultIndex.OPTION.index ->
-//                startActivity(Intent(this, SearchSchoolActivity::class.java))
-        }
-    }
-
     fun reloadData() {
         Log.d("@@@","@@@ reloadData @@@")
 
@@ -535,17 +632,6 @@ class MainActivity : AppCompatActivity() {
 
         storesList.clear()
         //cardAdapter.notifyDataSetChangedWith(option.isSelected)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        Log.d("@@@","@@@ onActivityResult ${resultCode} @@@")
-        if (requestCode == ActivityResultIndex.SEARCH.index) {
-            when (resultCode) {
-                Activity.RESULT_OK -> reloadData()
-            }
-        }
     }
 
     fun requestApiByAddr(addr: String) {
@@ -584,7 +670,7 @@ class MainActivity : AppCompatActivity() {
         disposeBag.add(task)
     }
 
-    fun requestApi(lat: Double, lng: Double) {
+    fun requestApi(lat: Double, lng: Double, move: Boolean = true) {
         Log.e("", "@@@ requestApi lat: ${lat}, lng: ${lng}")
         //storesList.clear()
 //        mapList.map{ it.map = null }
@@ -593,7 +679,7 @@ class MainActivity : AppCompatActivity() {
         lastLat = lat
         lastLng = lng
 
-        val task = NetworkService.getInstance().getStoresByGeo(lat, lng, 500)
+        val task = NetworkService.getInstance().getStoresByGeo(lat, lng, 600)
             .throttleFirst(1, TimeUnit.SECONDS)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeWith(ObservableResponse<StoresByData>(
@@ -708,9 +794,11 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    val cameraUpdate = CameraUpdate.scrollTo(LatLng(lastLat, lastLng)).animate(CameraAnimation.Easing)
-                    mMap.moveCamera(cameraUpdate)
-
+                    if(move) {
+                        val cameraUpdate =
+                            CameraUpdate.scrollTo(LatLng(lastLat, lastLng)).animate(CameraAnimation.Easing)
+                        mMap.moveCamera(cameraUpdate)
+                    }
                     //mMap.moveCamera(CameraUpdate.zoomTo(14.0))
                     //swipe_refresh.isRefreshing = false
                     Log.e("@@@@@", "onSuccess ${it.reflectionToString()}")
@@ -796,10 +884,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showMaterialInputDialog() {
+
         MaterialDialog(this).show {
-            input(hint = "주소를 입력해주세요!", maxLength = 100, allowEmpty = false){ dialog, text ->
-                Log.e("@@@","@@@ input text ${text.toString()}")
-                requestApiByAddr(text.toString())
+            input(waitForPositiveButton = false,
+                hint = "주소를 입력해주세요!",
+                maxLength = 100,
+                allowEmpty = false) { dialog, text ->
+                    Log.e("@@@","@@@ input text ${text}")
+
+                    //requestApiByAddr(text.toString())
 
             }
             positiveButton(text = "확인")
@@ -889,4 +982,13 @@ class MainActivity : AppCompatActivity() {
         countDownTimer = null
         ///drawer_layout.enableDisableViewGroup(true)
     }
+
+    fun startActivity(index: Int) {
+        when(index) {
+            ActivityResultIndex.SEARCH.index ->
+                startActivityForResult(Intent(CommonApplication.context, SearchStoreActivity::class.java),
+                    ActivityResultIndex.SEARCH.index)
+        }
+    }
+
 }

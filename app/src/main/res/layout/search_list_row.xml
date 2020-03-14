@@ -22,17 +22,37 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="left"
-
                 android:text="title"
-                android:textStyle="bold"/>
+                android:textSize="14dp"
+                />
 
         <TextView
-                android:id="@+id/list_description"
+                android:id="@+id/remain_stat"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="left"
+                android:textSize="16dp"
+                android:textStyle="bold"
+                android:text="remain_stat"/>
 
+        <TextView
+                android:id="@+id/list_address"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:textSize="14dp"
+                android:singleLine="true"
+                android:ellipsize="marquee"
                 android:text="description"/>
+
+        <TextView
+                android:id="@+id/store_at"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:textSize="14dp"
+                android:text="description"/>
+
 
     </LinearLayout>
 
@@ -40,7 +60,7 @@
             android:id="@+id/add"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:background="@drawable/add"
+            android:background="@drawable/plus"
             android:layout_marginLeft="15dp"
             android:layout_marginRight="15dp"
             android:clickable="false"

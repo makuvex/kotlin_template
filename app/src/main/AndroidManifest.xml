@@ -57,6 +57,18 @@
                 android:name="com.jungbae.mask.activity.NoticeActivity"
                 android:screenOrientation="portrait"/>
 
+        <activity
+                android:name="com.jungbae.mask.activity.LicenseActivity"
+                android:screenOrientation="portrait"/>
+
+        <activity
+                android:name="com.jungbae.mask.activity.PrivacyActivity"
+                android:screenOrientation="portrait"/>
+
+        <activity
+                android:name="com.jungbae.mask.activity.SearchStoreActivity"
+                android:screenOrientation="portrait"/>
+
         <service
                 android:name="com.jungbae.mask.MyFirebaseMessagingService"
                 android:exported="false">

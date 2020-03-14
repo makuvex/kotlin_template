@@ -20,6 +20,7 @@
     <string name="menu_keyword">키워드</string>
     <string name="menu_license">오픈소스 라이선스 고지</string>
     <string name="menu_version">버전</string>
+    <string name="privacy">개인정보처리방침</string>
 
     <string name="default_notification_channel_id" translatable="false">마스크 기본 채널</string>
 

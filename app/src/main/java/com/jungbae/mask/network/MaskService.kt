@@ -34,7 +34,7 @@ class MaskService {
                     chain.proceed(req)
                 }
 
-                //addInterceptor(logging)
+                addInterceptor(logging)
             }.build()
 
             val retrofit = Retrofit.Builder()
